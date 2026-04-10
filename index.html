@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <title>Interactive Graph Editor</title>
     <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
     <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -35,14 +37,6 @@
     <div class="status-bar" id="status">Graph ready</div>
 
     <script>
-        // Register Dagre extension
-        if (typeof cytoscapeDagre !== 'undefined') {
-            cytoscape.use(cytoscapeDagre);
-            console.log('Dagre extension registered successfully');
-        } else {
-            console.warn('Dagre extension not loaded');
-        }
-
         // Initial graph elements
         var els = [
             { group: 'nodes', data: { id: 'updateCounter', label: 'updateCounter' }, position: { x: 300, y: 50 }, classes: 'task' },
