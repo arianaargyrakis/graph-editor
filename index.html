@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Interactive Graph Editor</title>
+    <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+        }
+        #cy { 
+            width: 100%; 
+            height: 100vh; 
+            background: #fafafa;
+        }
+        .status-bar {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            z-index: 100;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="cy"></div>
+    <div class="status-bar" id="status">Graph ready</div>
+
+    <script>
+        // Initial graph elements (same as your original)
+        var els = [
+            { group: 'nodes', data: { id: 'updateCounter', label: 'updateCounter' }, position: { x: 300, y: 50 }, classes: 'task' },
+            { group: 'nodes', data: { id: 'count', label: 'count' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { group: 'nodes', data: { id: 'b2', label: 'b2' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { group: 'nodes', data: { id: 'syskbd', label: 'syskbd' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { group: 'nodes', data: { id: 'fl', label: 'fl' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { data: { id: 'edge0', source: 'count', target: 'updateCounter' }, classes: 'io' },
+            { data: { id: 'edge1', source: 'syskbd', target: 'updateCounter' }, classes: 'io' },
+            { data: { id: 'edge2', source: 'updateCounter', target: 'fl' }, classes: 'io' },
+            { group: 'nodes', data: { id: 'logic0', label: 'AND' }, position: { x: 150, y: 100 }, classes: 'logic' },
+            { data: { id: 'triggerEdge3', source: 'count', target: 'logic0' }, classes: 'trigger' },
+            { data: { id: 'triggerEdge4', source: 'b2', target: 'logic0' }, classes: 'trigger' },
+            { data: { id: 'triggerEdge5', source: 'logic0', target: 'updateCounter' }, classes: 'trigger' },
+            { data: { id: 'triggerEdge6', source: 'syskbd', target: 'updateCounter' }, classes: 'trigger' },
+            { group: 'nodes', data: { id: 'task2', label: 'task2' }, position: { x: 300, y: 150 }, classes: 'task' },
+            { group: 'nodes', data: { id: 'b1', label: 'b1' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { data: { id: 'edge7', source: 'count', target: 'task2' }, classes: 'io' },
+            { data: { id: 'edge8', source: 'b1', target: 'task2' }, classes: 'io' },
+            { data: { id: 'edge9', source: 'task2', target: 'count' }, classes: 'io' },
+            { data: { id: 'triggerEdge10', source: 'b1', target: 'task2' }, classes: 'trigger' },
+            { group: 'nodes', data: { id: 'task1', label: 'task1' }, position: { x: 300, y: 250 }, classes: 'task' },
+            { group: 'nodes', data: { id: 'file1', label: 'file1' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { group: 'nodes', data: { id: 'light1', label: 'light1' }, position: { x: 150, y: 100 }, classes: 'device' },
+            { data: { id: 'edge11', source: 'count', target: 'task1' }, classes: 'io' },
+            { data: { id: 'edge12', source: 'file1', target: 'task1' }, classes: 'io' },
+            { data: { id: 'edge13', source: 'task1', target: 'count' }, classes: 'io' },
+            { data: { id: 'edge14', source: 'task1', target: 'light1' }, classes: 'io' },
+            { data: { id: 'triggerEdge15', source: 'file1', target: 'task1' }, classes: 'trigger' }
+        ];
+
+        // Initialize Cytoscape
+        var cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: els,
+            style: [
+                { selector: 'node', style: { 'text-valign': 'center', 'text-halign': 'center', 'background-color': '#3498db', 'label': 'data(label)', 'padding-left': '20', 'padding-right': '20', 'width': 'label' } },
+                { selector: 'edge', style: { "curve-style": "bezier", "control-point-step-size": 40, 'target-arrow-shape': 'triangle' } },
+                { selector: 'edge.trigger', style: { 'line-color': '#00ff00', 'target-arrow-shape': 'triangle', 'source-arrow-shape': 'triangle', 'target-arrow-color': '#00ff00' } },
+                { selector: 'edge.io', style: { 'line-color': 'DeepSkyBlue', 'target-arrow-shape': 'triangle', 'target-arrow-color': 'DeepSkyBlue' } },
+                { selector: 'node.task', style: { 'shape': 'square', 'background-color': '#ff0000' } },
+                { selector: 'node.device', style: { 'shape': 'ellipse', 'background-color': 'DeepSkyBlue' } }
+            ],
+            layout: { name: 'cose', padding: 60 }
+        });
+
+        // Update status
+        document.getElementById('status').textContent = 'Graph loaded - ' + cy.nodes().length + ' nodes, ' + cy.edges().length + ' edges';
+
+        // Node click handler
+        cy.nodes().on('click', function(e) {
+            var nodeId = e.target.id();
+            console.log('Node clicked:', nodeId);
+            // Send to parent Qualtrics iframe
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'nodeClicked',
+                    nodeId: nodeId
+                }, '*');
+            }
+        });
+
+        // ============================================
+        // LISTEN FOR MESSAGES FROM QUALTRICS
+        // ============================================
+        
+        window.addEventListener('message', function(event) {
+            console.log('Iframe received message:', event.data);
+            
+            if (event.data.type === 'changeLayout') {
+                var layoutName = event.data.layout;
+                document.getElementById('status').textContent = 'Applying layout: ' + layoutName;
+                
+                cy.layout({
+                    name: layoutName,
+                    animate: true,
+                    animationDuration: 500,
+                    padding: 60,
+                    fit: true
+                }).run();
+                
+                setTimeout(function() {
+                    document.getElementById('status').textContent = 'Layout applied: ' + layoutName;
+                    setTimeout(function() {
+                        document.getElementById('status').textContent = 'Graph ready';
+                    }, 2000);
+                }, 600);
+            }
+            
+            if (event.data.type === 'requestScreenshot') {
+                try {
+                    var pngData = cy.png({
+                        full: true,
+                        scale: 2,
+                        output: 'base64'
+                    });
+                    
+                    var dataUrl = 'data:image/png;base64,' + pngData;
+                    
+                    window.parent.postMessage({
+                        type: 'screenshotData',
+                        data: dataUrl
+                    }, '*');
+                    
+                    document.getElementById('status').textContent = 'Screenshot sent to survey';
+                    setTimeout(function() {
+                        document.getElementById('status').textContent = 'Graph ready';
+                    }, 2000);
+                } catch(e) {
+                    console.error('Screenshot error:', e);
+                    document.getElementById('status').textContent = 'Screenshot failed';
+                }
+            }
+        });
+        
+        // Notify parent that iframe is ready
+        if (window.parent !== window) {
+            window.parent.postMessage({
+                type: 'iframeReady'
+            }, '*');
+        }
+        
+        console.log('Graph editor iframe initialized');
+    </script>
+</body>
+</html>
