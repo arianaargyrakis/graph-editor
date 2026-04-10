@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Interactive Graph Editor</title>
     <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -34,7 +35,15 @@
     <div class="status-bar" id="status">Graph ready</div>
 
     <script>
-        // Initial graph elements (same as your original)
+        // Register Dagre extension
+        if (typeof cytoscapeDagre !== 'undefined') {
+            cytoscape.use(cytoscapeDagre);
+            console.log('Dagre extension registered successfully');
+        } else {
+            console.warn('Dagre extension not loaded');
+        }
+
+        // Initial graph elements
         var els = [
             { group: 'nodes', data: { id: 'updateCounter', label: 'updateCounter' }, position: { x: 300, y: 50 }, classes: 'task' },
             { group: 'nodes', data: { id: 'count', label: 'count' }, position: { x: 150, y: 100 }, classes: 'device' },
@@ -87,7 +96,6 @@
         cy.nodes().on('click', function(e) {
             var nodeId = e.target.id();
             console.log('Node clicked:', nodeId);
-            // Send to parent Qualtrics iframe
             if (window.parent !== window) {
                 window.parent.postMessage({
                     type: 'nodeClicked',
@@ -96,10 +104,7 @@
             }
         });
 
-        // ============================================
-        // LISTEN FOR MESSAGES FROM QUALTRICS
-        // ============================================
-        
+        // Listen for messages from Qualtrics
         window.addEventListener('message', function(event) {
             console.log('Iframe received message:', event.data);
             
@@ -107,20 +112,25 @@
                 var layoutName = event.data.layout;
                 document.getElementById('status').textContent = 'Applying layout: ' + layoutName;
                 
-                cy.layout({
-                    name: layoutName,
-                    animate: true,
-                    animationDuration: 500,
-                    padding: 60,
-                    fit: true
-                }).run();
-                
-                setTimeout(function() {
-                    document.getElementById('status').textContent = 'Layout applied: ' + layoutName;
+                try {
+                    cy.layout({
+                        name: layoutName,
+                        animate: true,
+                        animationDuration: 500,
+                        padding: 60,
+                        fit: true
+                    }).run();
+                    
                     setTimeout(function() {
-                        document.getElementById('status').textContent = 'Graph ready';
-                    }, 2000);
-                }, 600);
+                        document.getElementById('status').textContent = 'Layout applied: ' + layoutName;
+                        setTimeout(function() {
+                            document.getElementById('status').textContent = 'Graph ready';
+                        }, 2000);
+                    }, 600);
+                } catch(e) {
+                    console.error('Layout error:', e);
+                    document.getElementById('status').textContent = 'Layout failed: ' + layoutName;
+                }
             }
             
             if (event.data.type === 'requestScreenshot') {
@@ -138,7 +148,7 @@
                         data: dataUrl
                     }, '*');
                     
-                    document.getElementById('status').textContent = 'Screenshot sent to survey';
+                    document.getElementById('status').textContent = 'Screenshot sent';
                     setTimeout(function() {
                         document.getElementById('status').textContent = 'Graph ready';
                     }, 2000);
