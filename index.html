@@ -37,6 +37,12 @@
     <div class="status-bar" id="status">Graph ready</div>
 
     <script>
+		if (typeof cytoscapeDagre !== 'undefined') {
+	        cytoscapeDagre(cytoscape);
+	        console.log('✓ Dagre extension registered');
+	    } else {
+	        console.error('✗ cytoscapeDagre not found');
+	    }
         // Initial graph elements
         var els = [
             { group: 'nodes', data: { id: 'updateCounter', label: 'updateCounter' }, position: { x: 300, y: 50 }, classes: 'task' },
